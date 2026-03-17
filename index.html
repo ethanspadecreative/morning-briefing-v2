@@ -116,37 +116,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
 </div>
 
 <div class="main">
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Weather — Nampa, ID</div><button class="rbtn" onclick="loadWeather()">↻ refresh</button></div>
     <div class="card"><div id="wx" class="ld">Loading weather...</div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Today's calendar</div><button class="rbtn" onclick="loadCalendar()">↻ refresh</button></div>
     <div class="card"><div id="cal" class="ld">Loading events...</div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">AI morning briefing</div><button class="rbtn" onclick="loadBriefing()">↻ regenerate</button></div>
     <div class="card"><div id="briefing" class="ld">Generating your briefing...</div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Verse of the day — ESV</div><button class="rbtn" onclick="nextVerse()">↻ new verse</button></div>
     <div class="card card-gold"><div id="verse"></div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Daily creative challenge</div><button class="rbtn" onclick="loadChallenge()">↻ new prompt</button></div>
     <div class="card"><div id="challenge" class="ld">Generating your challenge...</div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Quote of the day</div><button class="rbtn" onclick="loadQuote()">↻ new quote</button></div>
     <div class="card"><div id="quote" class="ld">Loading quote...</div></div>
   </div>
-
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Quick to-do</div><button class="rbtn" onclick="clearDone()">✕ clear done</button></div>
     <div class="card">
@@ -157,18 +150,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-// ── config ──────────────────────────────────────────────────────
-const AI_KEY = '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';
-const ICAL_URL = 'https://calendar.google.com/calendar/ical/ethanspade%40u.boisestate.edu/private-7198c598634b5b1c7ba6a621ae6e69e6/basic.ics';
-const ICAL_PROXY = 'https://corsproxy.io/?url=' + encodeURIComponent(ICAL_URL);
+const WORKER = 'https://bold-pine-5553.ethanspade01.workers.dev';
 const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=43.6099&longitude=-116.5597&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FBoise&forecast_days=1';
 const WX_CODES = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Freezing fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Rain showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm'};
-
-// ── verses (ESV, BibleGateway) ───────────────────────────────────
 const VERSES = [
   {v:"The steadfast love of the Lord never ceases; his mercies never come to an end; they are new every morning; great is your faithfulness.",r:"Lamentations 3:22-23"},
   {v:"I can do all things through him who strengthens me.",r:"Philippians 4:13"},
@@ -194,22 +181,21 @@ const VERSES = [
   {v:"He has told you, O man, what is good; and what does the Lord require of you but to do justice, and to love kindness, and to walk humbly with your God.",r:"Micah 6:8"},
   {v:"For I know the plans I have for you, declares the Lord, plans for welfare and not for evil, to give you a future and a hope.",r:"Jeremiah 29:11"},
   {v:"The heart of man plans his way, but the Lord establishes his steps.",r:"Proverbs 16:9"},
-  {v:"Have I not commanded you? Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.",r:"Joshua 1:9"},
   {v:"No temptation has overtaken you that is not common to man. God is faithful, and he will not let you be tempted beyond your ability.",r:"1 Corinthians 10:13"},
   {v:"I have been crucified with Christ. It is no longer I who live, but Christ who lives in me.",r:"Galatians 2:20"},
   {v:"The Lord is my shepherd; I shall not want.",r:"Psalm 23:1"},
   {v:"For by grace you have been saved through faith. And this is not your own doing; it is the gift of God.",r:"Ephesians 2:8"},
-  {v:"Even youths shall faint and be weary, and young men shall fall exhausted; but they who wait for the Lord shall renew their strength.",r:"Isaiah 40:30-31"}
+  {v:"Even youths shall faint and be weary, and young men shall fall exhausted; but they who wait for the Lord shall renew their strength.",r:"Isaiah 40:30-31"},
+  {v:"Cast your burden on the Lord, and he will sustain you; he will never permit the righteous to be moved.",r:"Psalm 55:22"}
 ];
 
-// ── state ────────────────────────────────────────────────────────
 let wxData = null;
 let calEvents = [];
 let todos = [];
 let verseIdx = new Date().getDate() % VERSES.length;
 try { todos = JSON.parse(localStorage.getItem('em_todos') || '[]'); } catch(e) { todos=[]; }
 
-// ── clock / header ───────────────────────────────────────────────
+// clock
 function tick() {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
@@ -220,39 +206,34 @@ function initHeader() {
   document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 }
 
-// ── ai helper ────────────────────────────────────────────────────
+// ai via worker
 async function callAI(system, user) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': AI_KEY,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
+  const r = await fetch(WORKER + '/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:600,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
       system,
-      messages:[{role:'user',content:user}]
+      messages: [{ role: 'user', content: user }]
     })
   });
-  if (!r.ok) throw new Error('HTTP '+r.status);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
   const d = await r.json();
-  return d.content.find(b=>b.type==='text')?.text || '';
+  return d.content.find(b => b.type === 'text')?.text || '';
 }
 function tryJSON(s) {
   try { return JSON.parse(s.replace(/```json|```/g,'').trim()); } catch(e) { return null; }
 }
 
-// ── weather ──────────────────────────────────────────────────────
+// weather
 async function loadWeather() {
   document.getElementById('wx').innerHTML = '<div class="ld">Loading weather...</div>';
   try {
-    const d = await fetch(WX_URL).then(r=>r.json());
+    const d = await fetch(WX_URL).then(r => r.json());
     wxData = d;
     const c = d.current, dy = d.daily;
-    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m)+'°F';
+    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m) + '°F';
     document.getElementById('wx').innerHTML = `
       <div class="wx-row">
         <div>
@@ -272,47 +253,30 @@ async function loadWeather() {
   }
 }
 
-// ── calendar (iCal parse) ────────────────────────────────────────
+// calendar via worker
 function parseIcal(text) {
   const events = [];
   const blocks = text.split('BEGIN:VEVENT');
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0,10).replace(/-/g,'');
-
+  const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
   for (let i = 1; i < blocks.length; i++) {
-    const block = blocks[i];
-    const get = (key) => {
-      const m = block.match(new RegExp(key + '[^:]*:(.+)'));
-      return m ? m[1].replace(/\r/g,'').trim() : '';
-    };
+    const b = blocks[i];
+    const get = k => { const m = b.match(new RegExp(k+'[^:]*:(.+)')); return m ? m[1].replace(/\r/g,'').trim() : ''; };
     const summary = get('SUMMARY');
     const dtstart = get('DTSTART');
-    const dtend = get('DTEND');
-
     if (!summary || !dtstart) continue;
-
-    // Check if event is today
-    const datepart = dtstart.replace(/T.*/,'');
-    if (datepart !== todayStr) continue;
-
-    // Format time
-    let timeStr = '';
+    if (dtstart.replace(/T.*/,'') !== todayStr) continue;
+    let timeStr = 'All day';
     if (dtstart.includes('T')) {
-      const timePart = dtstart.replace(/.*T/,'').slice(0,4);
-      let h = parseInt(timePart.slice(0,2));
-      const m = timePart.slice(2,4);
-      const ampm = h >= 12 ? 'PM' : 'AM';
+      const tp = dtstart.replace(/.*T/,'').slice(0,4);
+      let h = parseInt(tp.slice(0,2));
+      const m = tp.slice(2,4);
+      const ap = h >= 12 ? 'PM' : 'AM';
       if (h > 12) h -= 12;
       if (h === 0) h = 12;
-      timeStr = `${h}:${m} ${ampm}`;
-    } else {
-      timeStr = 'All day';
+      timeStr = `${h}:${m} ${ap}`;
     }
-
     events.push({ title: summary, time: timeStr });
   }
-
-  // Sort by time
   events.sort((a,b) => a.time === 'All day' ? -1 : a.time.localeCompare(b.time));
   return events;
 }
@@ -320,7 +284,7 @@ function parseIcal(text) {
 async function loadCalendar() {
   document.getElementById('cal').innerHTML = '<div class="ld">Loading events...</div>';
   try {
-    const resp = await fetch(ICAL_PROXY);
+    const resp = await fetch(WORKER + '/calendar');
     if (!resp.ok) throw new Error('fetch failed');
     const text = await resp.text();
     calEvents = parseIcal(text);
@@ -339,24 +303,22 @@ async function loadCalendar() {
     }
     loadBriefing();
   } catch(e) {
-    document.getElementById('cal').innerHTML = '<div class="err">Could not load calendar. Tap refresh to try again.</div>';
+    document.getElementById('cal').innerHTML = '<div class="err">Could not load calendar — tap refresh to retry.</div>';
     document.getElementById('m-events').textContent = '—';
     loadBriefing();
   }
 }
 
-// ── briefing ─────────────────────────────────────────────────────
+// briefing
 async function loadBriefing() {
   document.getElementById('briefing').innerHTML = '<div class="ld">Generating...</div>';
-  const wx = wxData
-    ? `${Math.round(wxData.current.temperature_2m)}°F, ${WX_CODES[wxData.current.weathercode]||'unknown'}, high ${Math.round(wxData.daily.temperature_2m_max[0])}°F`
-    : 'unavailable';
+  const wx = wxData ? `${Math.round(wxData.current.temperature_2m)}°F, ${WX_CODES[wxData.current.weathercode]||'unknown'}, high ${Math.round(wxData.daily.temperature_2m_max[0])}°F` : 'unavailable';
   const cal = calEvents.length ? calEvents.map(e=>`${e.time}: ${e.title}`).join(', ') : 'no events today';
   const tasks = todos.filter(t=>!t.done).map(t=>t.text).join(', ') || 'none';
   try {
     const text = await callAI(
       `You are a morning briefing assistant for Ethan — a 19-year-old BSU student studying Innovation & Design. He loves filmmaking, video production, photography, and creative technology. He is the first in his family to attend college. Write a warm, energetic 2-4 sentence briefing. Sound like a smart encouraging friend, not a robot. Reference his weather and schedule naturally. End with a small nudge toward his creative goals.`,
-      `Date: ${new Date().toDateString()}. Weather in Nampa ID: ${wx}. Schedule: ${cal}. Open tasks: ${tasks}. Write my morning briefing.`
+      `Date: ${new Date().toDateString()}. Weather in Nampa ID: ${wx}. Schedule: ${cal}. Open tasks: ${tasks}.`
     );
     document.getElementById('briefing').innerHTML = `<div class="briefing">${text}</div>`;
   } catch(e) {
@@ -364,7 +326,7 @@ async function loadBriefing() {
   }
 }
 
-// ── verse ────────────────────────────────────────────────────────
+// verse
 function renderVerse() {
   const v = VERSES[verseIdx % VERSES.length];
   document.getElementById('verse').innerHTML = `
@@ -374,7 +336,7 @@ function renderVerse() {
 }
 function nextVerse() { verseIdx++; renderVerse(); }
 
-// ── challenge ─────────────────────────────────────────────────────
+// challenge
 async function loadChallenge() {
   document.getElementById('challenge').innerHTML = '<div class="ld">Generating challenge...</div>';
   try {
@@ -390,16 +352,16 @@ async function loadChallenge() {
         <div class="tag">${p.category}</div>`;
     } else throw new Error('parse');
   } catch(e) {
-    document.getElementById('challenge').innerHTML = `<div class="err">Could not load — tap "new prompt" to retry.</div>`;
+    document.getElementById('challenge').innerHTML = `<div class="err">Could not load — tap new prompt to retry.</div>`;
   }
 }
 
-// ── quote ─────────────────────────────────────────────────────────
+// quote
 async function loadQuote() {
   document.getElementById('quote').innerHTML = '<div class="ld">Loading quote...</div>';
   try {
     const text = await callAI(
-      `Return ONLY a raw JSON object with no markdown fences: {"quote":"inspiring quote","author":"Author Name"}. Pick a non-cliche quote about creativity, filmmaking, storytelling, faith, or ambition.`,
+      `Return ONLY a raw JSON object with no markdown fences: {"quote":"inspiring quote","author":"Author Name"}. Non-cliche quote about creativity, filmmaking, storytelling, faith, or ambition.`,
       `Quote for ${new Date().toDateString()}. Raw JSON only.`
     );
     const q = tryJSON(text);
@@ -411,7 +373,7 @@ async function loadQuote() {
   }
 }
 
-// ── todos ─────────────────────────────────────────────────────────
+// todos
 function saveTodos() {
   localStorage.setItem('em_todos', JSON.stringify(todos));
   document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
@@ -437,7 +399,7 @@ function addTodo(){
   saveTodos();renderTodos();
 }
 
-// ── init ──────────────────────────────────────────────────────────
+// init
 initHeader(); tick(); setInterval(tick,10000);
 renderTodos(); renderVerse();
 loadWeather();
