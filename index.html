@@ -121,20 +121,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
     <div class="card"><div id="cal" class="ld">Loading events...</div></div>
   </div>
   <div class="sec">
-    <div class="sec-hd"><div class="sec-lbl">AI morning briefing</div><button class="rbtn" onclick="loadBriefing()">↻ regenerate</button></div>
-    <div class="card"><div id="briefing" class="ld">Generating your briefing...</div></div>
+    <div class="sec-hd"><div class="sec-lbl">Morning briefing</div><button class="rbtn" onclick="renderBriefing()">↻ refresh</button></div>
+    <div class="card"><div id="briefing" class="ld">Loading...</div></div>
   </div>
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Verse of the day — ESV</div><button class="rbtn" onclick="nextVerse()">↻ new verse</button></div>
     <div class="card card-gold"><div id="verse"></div></div>
   </div>
   <div class="sec">
-    <div class="sec-hd"><div class="sec-lbl">Daily creative challenge</div><button class="rbtn" onclick="loadChallenge()">↻ new prompt</button></div>
-    <div class="card"><div id="challenge" class="ld">Generating your challenge...</div></div>
+    <div class="sec-hd"><div class="sec-lbl">Daily creative challenge</div><button class="rbtn" onclick="nextChallenge()">↻ new prompt</button></div>
+    <div class="card"><div id="challenge"></div></div>
   </div>
   <div class="sec">
-    <div class="sec-hd"><div class="sec-lbl">Quote of the day</div><button class="rbtn" onclick="loadQuote()">↻ new quote</button></div>
-    <div class="card"><div id="quote" class="ld">Loading quote...</div></div>
+    <div class="sec-hd"><div class="sec-lbl">Quote of the day</div><button class="rbtn" onclick="nextQuote()">↻ new quote</button></div>
+    <div class="card"><div id="quote"></div></div>
   </div>
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Quick to-do</div><button class="rbtn" onclick="clearDone()">✕ clear done</button></div>
@@ -151,6 +151,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
 const WORKER = 'https://bold-pine-5553.ethanspade01.workers.dev';
 const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=43.6099&longitude=-116.5597&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FBoise&forecast_days=1';
 const WX_CODES = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Freezing fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Rain showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm'};
+
 const VERSES = [
   {v:"The steadfast love of the Lord never ceases; his mercies never come to an end; they are new every morning; great is your faithfulness.",r:"Lamentations 3:22-23"},
   {v:"I can do all things through him who strengthens me.",r:"Philippians 4:13"},
@@ -184,45 +185,113 @@ const VERSES = [
   {v:"Cast your burden on the Lord, and he will sustain you; he will never permit the righteous to be moved.",r:"Psalm 55:22"}
 ];
 
+const CHALLENGES = [
+  {c:"Shoot a 60-second scene using only one fixed camera angle — no cuts, no movement.",t:"Force yourself to think about blocking and performance instead of hiding behind edits. Every second has to count.",cat:"Filmmaking"},
+  {c:"Go outside and shoot 10 photos using only natural window light or doorway light.",t:"Soft directional light from a window creates cinematic shadows. Position your subject at 45 degrees to the light source.",cat:"Photography"},
+  {c:"Take any raw footage you have and cut it to a song in a completely different genre than intended.",t:"Cutting a serious scene to an upbeat track (or vice versa) forces you to find new rhythm in your edits.",cat:"Editing"},
+  {c:"Design a minimalist movie poster for your favorite film using only two colors and one font.",t:"Constraint breeds creativity. Strip it down to the single most iconic visual element of the film.",cat:"Visual Design"},
+  {c:"Write the opening scene of a film set entirely in Nampa, Idaho — make it cinematic.",t:"Great stories are rooted in specific places. Use real details from your environment to ground the scene.",cat:"Storytelling"},
+  {c:"Film a 30-second portrait of someone without them speaking — tell their story visually.",t:"Use close-ups of hands, eyes, and environment. Let details do the talking instead of dialogue.",cat:"Filmmaking"},
+  {c:"Find one ordinary object and photograph it 10 different ways in 10 minutes.",t:"Change your angle, distance, focus point, and framing each shot. This trains your eye to see beyond the obvious.",cat:"Photography"},
+  {c:"Edit a 90-second travel montage using only footage from your camera roll.",t:"Use J-cuts and L-cuts to make audio transitions feel smooth even when visuals jump.",cat:"Editing"},
+  {c:"Create a title sequence concept — typography, color, and motion — for a show you'd want to make.",t:"Title sequences tell you everything about tone before a single line of dialogue. Think Se7en or Stranger Things.",cat:"Visual Design"},
+  {c:"Write a 3-page short film script that takes place in a single room with two characters.",t:"Constraints force depth. If your characters can't leave, the tension has to come from what they say and don't say.",cat:"Storytelling"},
+  {c:"Shoot a scene in complete silence and rely only on music you add in post to create emotion.",t:"Pick music first, then shoot to match its energy. This is how many music video directors work.",cat:"Filmmaking"},
+  {c:"Golden hour only — go outside 30 minutes before sunset and shoot until the light is gone.",t:"The quality of light changes every 2 minutes during golden hour. Work fast and shoot continuously.",cat:"Photography"},
+  {c:"Find a YouTube video with bad pacing and re-edit a 2-minute section to fix it.",t:"Pacing is about breath — give the viewer time to absorb a moment before moving to the next.",cat:"Editing"},
+  {c:"Design three alternate logo concepts for BSU's Innovation & Design program.",t:"A good logo works in black and white, at 16px and at 1600px. Test yours at both extremes.",cat:"Visual Design"},
+  {c:"Write the villain's backstory for a film — make them completely understandable, even sympathetic.",t:"The best antagonists believe they're the hero. Give yours a wound that explains everything they do.",cat:"Storytelling"},
+  {c:"Shoot a short film using only your phone, a ring light, and one location.",t:"Limitation is liberating. Kubrick said the best films are made with the fewest resources creatively deployed.",cat:"Filmmaking"},
+  {c:"Find a stranger (or friend) and take their portrait — capture something true about them.",t:"The secret to a great portrait is patience. Wait for the moment they forget you're there.",cat:"Photography"},
+  {c:"Take a scene you've already edited and remove 30% of the cuts — see what changes.",t:"Over-editing kills impact. Some of the most powerful moments in cinema are long unbroken takes.",cat:"Editing"},
+  {c:"Create a mood board for a short film you want to make — 12 images, one color palette.",t:"Every image should answer: what does this film feel like? Not what happens, but how it feels.",cat:"Visual Design"},
+  {c:"Write a monologue for a character who is trying not to say what they actually mean.",t:"Subtext is everything. The most powerful lines are the ones hiding the real emotion underneath.",cat:"Storytelling"},
+  {c:"Recreate a shot from your favorite film as closely as possible with whatever gear you have.",t:"Reverse-engineering a master's work teaches you more than any tutorial. Break down exactly how they lit it.",cat:"Filmmaking"},
+  {c:"Shoot the same subject in 5 different lighting conditions throughout the day.",t:"Dawn, morning, midday, golden hour, blue hour. Light is the single biggest variable in photography.",cat:"Photography"},
+  {c:"Cut a 1-minute hype reel of your own work — make yourself look as good as possible.",t:"Your reel is your handshake. Every clip should earn its place in the first 3 seconds.",cat:"Editing"},
+  {c:"Design a social media graphic series — 3 posts that feel cohesive as a set.",t:"Consistency across a series trains your audience to recognize your visual language instantly.",cat:"Visual Design"},
+  {c:"Write the first and last scene of a short film — skip everything in between.",t:"If your opening and closing scenes are strong enough, the middle almost writes itself around them.",cat:"Storytelling"},
+  {c:"Film a conversation scene with no dialogue — only reaction shots.",t:"Reaction shots carry more emotional weight than action shots. The listener's face tells the real story.",cat:"Filmmaking"},
+  {c:"Shoot a series of photos that tell a story using only inanimate objects.",t:"Props carry history. A worn jacket, a cracked phone screen — objects reveal character without a single person.",cat:"Photography"},
+  {c:"Edit a scene and then do it again with a completely different music track — compare the two.",t:"Music rewires how we read images. The same edit can feel tragic, triumphant, or comedic depending on the score.",cat:"Editing"},
+  {c:"Create a cinematic title card for your own name — your personal brand, visualized.",t:"How you present your name is how the industry sees you before they see your work. Make it count.",cat:"Visual Design"},
+  {c:"Write a scene where the most important thing said is never actually said out loud.",t:"Hemingway's iceberg theory — the dignity of movement comes from what you leave out.",cat:"Storytelling"}
+];
+
+const QUOTES = [
+  {q:"The camera is an instrument that teaches people how to see without a camera.",a:"Dorothea Lange"},
+  {q:"Every great film should seem new every time you see it.",a:"Roger Ebert"},
+  {q:"Cinema is a mirror by which we often see ourselves.",a:"Martin Scorsese"},
+  {q:"The most courageous act is still to think for yourself. Aloud.",a:"Coco Chanel"},
+  {q:"You can't use up creativity. The more you use, the more you have.",a:"Maya Angelou"},
+  {q:"A film is never really good unless the camera is an eye in the head of a poet.",a:"Orson Welles"},
+  {q:"The secret to getting ahead is getting started.",a:"Mark Twain"},
+  {q:"I make films about people I love and want to understand.",a:"Sofia Coppola"},
+  {q:"Don't think about making art, just get it done.",a:"Andy Warhol"},
+  {q:"If you hear a voice within you say you cannot paint, then by all means paint and that voice will be silenced.",a:"Vincent Van Gogh"},
+  {q:"The two most important days in your life are the day you are born and the day you find out why.",a:"Mark Twain"},
+  {q:"Light makes photography. Embrace light. Admire it. Love it. But above all, know light.",a:"George Eastman"},
+  {q:"A story should have a beginning, a middle, and an end, but not necessarily in that order.",a:"Jean-Luc Godard"},
+  {q:"The best time to plant a tree was 20 years ago. The second best time is now.",a:"Chinese Proverb"},
+  {q:"Creativity is intelligence having fun.",a:"Albert Einstein"},
+  {q:"I never lose. I either win or learn.",a:"Nelson Mandela"},
+  {q:"The only way to do great work is to love what you do.",a:"Steve Jobs"},
+  {q:"Films are dreams that you never forget.",a:"Unknown"},
+  {q:"Everything you can imagine is real.",a:"Pablo Picasso"},
+  {q:"What we fear doing most is usually what we most need to do.",a:"Tim Ferriss"},
+  {q:"First, forget inspiration. Habit is more dependable.",a:"Octavia Butler"},
+  {q:"The difference between ordinary and extraordinary is that little extra.",a:"Jimmy Johnson"},
+  {q:"It always seems impossible until it's done.",a:"Nelson Mandela"},
+  {q:"The eye should learn to listen before it looks.",a:"Robert Frank"},
+  {q:"Simplicity is the ultimate sophistication.",a:"Leonardo da Vinci"},
+  {q:"Every artist was first an amateur.",a:"Ralph Waldo Emerson"},
+  {q:"Be so good they can't ignore you.",a:"Steve Martin"},
+  {q:"Start where you are. Use what you have. Do what you can.",a:"Arthur Ashe"},
+  {q:"Done is better than perfect.",a:"Sheryl Sandberg"},
+  {q:"The purpose of art is washing the dust of daily life off our souls.",a:"Pablo Picasso"}
+];
+
+const BRIEFINGS = [
+  "New day, fresh start. The weather's looking {wx} out there in Nampa — {events}. You're building something real, Ethan. Keep stacking days.",
+  "Rise up. It's {wx} outside and {events}. You're the first in your family doing this — every single morning you open your eyes is proof that it's working.",
+  "Good morning. {wx} skies over Nampa today, and {events}. Your camera, your eye, your story — nobody else has what you have. Go use it.",
+  "Today's forecast: {wx} with a chance of doing something great. {events}. One intentional hour of creative work today compounds into a career.",
+  "Another day to build. Outside it's {wx} — {events}. The filmmakers you admire showed up on days exactly like this one. So do you.",
+  "Morning, Ethan. {wx} out there today. {events}. Every great shot starts with showing up. You're already here — that's the hardest part done.",
+  "New day. {wx} in Nampa. {events}. Your creative instincts are sharper than you think. Trust them more today.",
+  "Up and at it. It's {wx} outside — {events}. Progress doesn't always feel like progress in the moment. Keep going anyway.",
+  "Good morning. {wx} skies today and {events}. BSU, Innovation & Design, filmmaking — you chose all of this. Own it completely.",
+  "Today: {wx}, {events}. The version of you six months from now will be grateful you didn't quit on a day like today."
+];
+
 let wxData = null;
 let calEvents = [];
 let todos = [];
-let verseIdx = new Date().getDate() % VERSES.length;
-try { todos = JSON.parse(localStorage.getItem('em_todos') || '[]'); } catch(e) { todos=[]; }
+const day = new Date().getDate();
+const doy = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0))/86400000);
+let verseIdx = doy % VERSES.length;
+let challengeIdx = doy % CHALLENGES.length;
+let quoteIdx = doy % QUOTES.length;
+let briefingIdx = doy % BRIEFINGS.length;
 
-function tick() {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-}
-function initHeader() {
-  const h = new Date().getHours();
-  const g = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('greeting').innerHTML = `${g}, <em>Ethan</em>`;
-  document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-}
+try { todos = JSON.parse(localStorage.getItem('em_todos')||'[]'); } catch(e){todos=[];}
 
-async function callAI(system, user) {
-  const r = await fetch(WORKER + '/ai', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens:600, system, messages:[{role:'user',content:user}]})
-  });
-  if (!r.ok) throw new Error('HTTP '+r.status);
-  const d = await r.json();
-  if (d.error) throw new Error(d.error);
-  return d.content.find(b=>b.type==='text')?.text || '';
-}
-function tryJSON(s) {
-  try { return JSON.parse(s.replace(/```json|```/g,'').trim()); } catch(e) { return null; }
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
+function initHeader(){
+  const h=new Date().getHours();
+  const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('greeting').innerHTML=`${g}, <em>Ethan</em>`;
+  document.getElementById('dateline').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 }
 
-async function loadWeather() {
-  document.getElementById('wx').innerHTML = '<div class="ld">Loading weather...</div>';
-  try {
-    const d = await fetch(WX_URL).then(r=>r.json());
-    wxData = d;
-    const c = d.current, dy = d.daily;
-    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m)+'°F';
-    document.getElementById('wx').innerHTML = `
+async function loadWeather(){
+  document.getElementById('wx').innerHTML='<div class="ld">Loading weather...</div>';
+  try{
+    const d=await fetch(WX_URL).then(r=>r.json());
+    wxData=d;
+    const c=d.current,dy=d.daily;
+    document.getElementById('m-temp').textContent=Math.round(c.temperature_2m)+'°F';
+    document.getElementById('wx').innerHTML=`
       <div class="wx-row">
         <div>
           <div class="wx-temp">${Math.round(c.temperature_2m)}°F</div>
@@ -236,112 +305,77 @@ async function loadWeather() {
           <div class="wx-d">Rain <b>${dy.precipitation_probability_max[0]}%</b></div>
         </div>
       </div>`;
-  } catch(e) {
-    document.getElementById('wx').innerHTML = '<div class="err">Could not load weather.</div>';
+    renderBriefing();
+  }catch(e){
+    document.getElementById('wx').innerHTML='<div class="err">Could not load weather.</div>';
   }
 }
 
-// Parse iCal and convert UTC times to Mountain Time (America/Denver)
-function parseIcal(text) {
-  const events = [];
-  const blocks = text.split('BEGIN:VEVENT');
+function getTimezoneOffset(tz,date){
+  try{
+    const u=new Date(date.toLocaleString('en-US',{timeZone:'UTC'}));
+    const t=new Date(date.toLocaleString('en-US',{timeZone:tz}));
+    return(u-t)/60000;
+  }catch(e){return 0;}
+}
 
-  // Get today's date string in Mountain Time
-  const nowMT = new Date().toLocaleDateString('en-CA', {timeZone:'America/Denver'}).replace(/-/g,'');
-
-  for (let i = 1; i < blocks.length; i++) {
-    const b = blocks[i];
-
-    const getVal = (key) => {
-      const m = b.match(new RegExp('(?:^|\\n)' + key + '[^:]*:([^\\n]+)', 'i'));
-      return m ? m[1].replace(/\r/g,'').trim() : '';
-    };
-
-    const summary = getVal('SUMMARY');
-    const dtstart = getVal('DTSTART');
-    const tzid = (b.match(/DTSTART;TZID=([^:]+):/) || [])[1] || '';
-
-    if (!summary || !dtstart) continue;
-
-    let eventDateStr = '';
-    let timeStr = 'All day';
-
-    if (dtstart.includes('T')) {
+function parseIcal(text){
+  const events=[];
+  const blocks=text.split('BEGIN:VEVENT');
+  const nowMT=new Date().toLocaleDateString('en-CA',{timeZone:'America/Denver'}).replace(/-/g,'');
+  for(let i=1;i<blocks.length;i++){
+    const b=blocks[i];
+    const getVal=key=>{const m=b.match(new RegExp('(?:^|\\n)'+key+'[^:]*:([^\\n]+)','i'));return m?m[1].replace(/\r/g,'').trim():'';};
+    const summary=getVal('SUMMARY');
+    const dtstart=getVal('DTSTART');
+    const tzid=(b.match(/DTSTART;TZID=([^:]+):/)||[])[1]||'';
+    if(!summary||!dtstart)continue;
+    let eventDateStr='',timeStr='All day';
+    if(dtstart.includes('T')){
       let eventDate;
-      if (dtstart.endsWith('Z')) {
-        // UTC time — convert to Mountain
-        const yr = dtstart.slice(0,4), mo = dtstart.slice(4,6), dy = dtstart.slice(6,8);
-        const hr = dtstart.slice(9,11), mn = dtstart.slice(11,13), sc = dtstart.slice(13,15);
-        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:${sc}Z`);
-      } else if (tzid) {
-        // Has TZID — parse as local time in that zone
-        const bare = dtstart.replace(/.*:/,'');
-        const yr = bare.slice(0,4), mo = bare.slice(4,6), dy = bare.slice(6,8);
-        const hr = bare.slice(9,11), mn = bare.slice(11,13);
-        // Create date in specified timezone by formatting
-        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
-        // Adjust for timezone offset difference
-        const tzOffset = getTimezoneOffset(tzid, eventDate);
-        const mtOffset = getTimezoneOffset('America/Denver', eventDate);
-        eventDate = new Date(eventDate.getTime() + (tzOffset - mtOffset) * 60000);
-      } else {
-        const bare = dtstart.replace(/.*:/,'');
-        const yr = bare.slice(0,4), mo = bare.slice(4,6), dy = bare.slice(6,8);
-        const hr = bare.slice(9,11), mn = bare.slice(11,13);
-        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
+      if(dtstart.endsWith('Z')){
+        const yr=dtstart.slice(0,4),mo=dtstart.slice(4,6),dy=dtstart.slice(6,8),hr=dtstart.slice(9,11),mn=dtstart.slice(11,13),sc=dtstart.slice(13,15);
+        eventDate=new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:${sc}Z`);
+      }else if(tzid){
+        const bare=dtstart.replace(/.*:/,'');
+        const yr=bare.slice(0,4),mo=bare.slice(4,6),dy=bare.slice(6,8),hr=bare.slice(9,11),mn=bare.slice(11,13);
+        eventDate=new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
+        const tzOff=getTimezoneOffset(tzid,eventDate);
+        const mtOff=getTimezoneOffset('America/Denver',eventDate);
+        eventDate=new Date(eventDate.getTime()+(tzOff-mtOff)*60000);
+      }else{
+        const bare=dtstart.replace(/.*:/,'');
+        const yr=bare.slice(0,4),mo=bare.slice(4,6),dy=bare.slice(6,8),hr=bare.slice(9,11),mn=bare.slice(11,13);
+        eventDate=new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
       }
-
-      eventDateStr = eventDate.toLocaleDateString('en-CA', {timeZone:'America/Denver'}).replace(/-/g,'');
-      timeStr = eventDate.toLocaleTimeString('en-US', {timeZone:'America/Denver', hour:'numeric', minute:'2-digit'});
-    } else {
-      // All-day event — DATE only
-      eventDateStr = dtstart.replace(/.*:/,'').slice(0,8);
-      timeStr = 'All day';
+      eventDateStr=eventDate.toLocaleDateString('en-CA',{timeZone:'America/Denver'}).replace(/-/g,'');
+      timeStr=eventDate.toLocaleTimeString('en-US',{timeZone:'America/Denver',hour:'numeric',minute:'2-digit'});
+    }else{
+      eventDateStr=dtstart.replace(/.*:/,'').slice(0,8);
     }
-
-    if (eventDateStr !== nowMT) continue;
-
-    // Check EXDATE — skip excluded dates
-    const exdates = [];
-    const exRe = /EXDATE[^:]*:([^\r\n]+)/gi;
-    let exMatch;
-    while ((exMatch = exRe.exec(b)) !== null) {
-      exdates.push(exMatch[1].trim());
-    }
-    const dtStartRaw = getVal('DTSTART');
-    if (exdates.some(ex => ex.includes(dtStartRaw.replace(/.*:/,'')))) continue;
-
-    events.push({title: summary, time: timeStr});
+    if(eventDateStr!==nowMT)continue;
+    events.push({title:summary,time:timeStr});
   }
-
-  events.sort((a,b) => {
-    if (a.time === 'All day') return -1;
-    if (b.time === 'All day') return 1;
-    return new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time);
+  events.sort((a,b)=>{
+    if(a.time==='All day')return -1;
+    if(b.time==='All day')return 1;
+    return new Date('1970/01/01 '+a.time)-new Date('1970/01/01 '+b.time);
   });
   return events;
 }
 
-function getTimezoneOffset(tz, date) {
-  try {
-    const utcDate = new Date(date.toLocaleString('en-US', {timeZone:'UTC'}));
-    const tzDate = new Date(date.toLocaleString('en-US', {timeZone:tz}));
-    return (utcDate - tzDate) / 60000;
-  } catch(e) { return 0; }
-}
-
-async function loadCalendar() {
-  document.getElementById('cal').innerHTML = '<div class="ld">Loading events...</div>';
-  try {
-    const resp = await fetch(WORKER + '/calendar');
-    if (!resp.ok) throw new Error('fetch failed');
-    const text = await resp.text();
-    calEvents = parseIcal(text);
-    document.getElementById('m-events').textContent = calEvents.length;
-    if (!calEvents.length) {
-      document.getElementById('cal').innerHTML = '<div class="no-ev">No events today — enjoy the free day.</div>';
-    } else {
-      document.getElementById('cal').innerHTML = `<div class="ev-list">${calEvents.map(e=>`
+async function loadCalendar(){
+  document.getElementById('cal').innerHTML='<div class="ld">Loading events...</div>';
+  try{
+    const resp=await fetch(WORKER+'/calendar');
+    if(!resp.ok)throw new Error('fetch failed');
+    const text=await resp.text();
+    calEvents=parseIcal(text);
+    document.getElementById('m-events').textContent=calEvents.length;
+    if(!calEvents.length){
+      document.getElementById('cal').innerHTML='<div class="no-ev">No events today — enjoy the free day.</div>';
+    }else{
+      document.getElementById('cal').innerHTML=`<div class="ev-list">${calEvents.map(e=>`
         <div class="ev">
           <div class="ev-dot"></div>
           <div class="ev-info">
@@ -350,88 +384,57 @@ async function loadCalendar() {
           </div>
         </div>`).join('')}</div>`;
     }
-    loadBriefing();
-  } catch(e) {
-    document.getElementById('cal').innerHTML = '<div class="err">Could not load calendar — tap refresh to retry.</div>';
-    document.getElementById('m-events').textContent = '—';
-    loadBriefing();
+    renderBriefing();
+  }catch(e){
+    document.getElementById('cal').innerHTML='<div class="err">Could not load calendar — tap refresh to retry.</div>';
+    document.getElementById('m-events').textContent='—';
+    renderBriefing();
   }
 }
 
-async function loadBriefing() {
-  document.getElementById('briefing').innerHTML = '<div class="ld">Generating...</div>';
-  const wx = wxData ? `${Math.round(wxData.current.temperature_2m)}°F, ${WX_CODES[wxData.current.weathercode]||'unknown'}, high ${Math.round(wxData.daily.temperature_2m_max[0])}°F` : 'unavailable';
-  const cal = calEvents.length ? calEvents.map(e=>`${e.time}: ${e.title}`).join(', ') : 'no events today';
-  const tasks = todos.filter(t=>!t.done).map(t=>t.text).join(', ') || 'none';
-  try {
-    const text = await callAI(
-      `You are a morning briefing assistant for Ethan — a 19-year-old BSU student studying Innovation & Design. He loves filmmaking, video production, photography, and creative technology. He is the first in his family to attend college. Write a warm, energetic 2-4 sentence briefing. Sound like a smart encouraging friend, not a robot. Reference his weather and schedule naturally. End with a small nudge toward his creative goals.`,
-      `Date: ${new Date().toDateString()}. Weather in Nampa ID: ${wx}. Schedule: ${cal}. Open tasks: ${tasks}.`
-    );
-    document.getElementById('briefing').innerHTML = `<div class="briefing">${text}</div>`;
-  } catch(e) {
-    document.getElementById('briefing').innerHTML = `<div class="err">Could not generate briefing — tap regenerate to retry.</div>`;
-  }
+function renderBriefing(){
+  const wx=wxData?`${Math.round(wxData.current.temperature_2m)}°F and ${(WX_CODES[wxData.current.weathercode]||'clear').toLowerCase()}`:'looking good';
+  const evStr=calEvents.length===0?'you\'ve got a free day':calEvents.length===1?`you\'ve got ${calEvents[0].title} at ${calEvents[0].time}`:`you\'ve got ${calEvents.length} things on the calendar`;
+  let text=BRIEFINGS[briefingIdx];
+  text=text.replace('{wx}',wx).replace('{events}',evStr);
+  document.getElementById('briefing').innerHTML=`<div class="briefing">${text}</div>`;
 }
 
-function renderVerse() {
-  const v = VERSES[verseIdx % VERSES.length];
-  document.getElementById('verse').innerHTML = `
+function renderVerse(){
+  const v=VERSES[verseIdx%VERSES.length];
+  document.getElementById('verse').innerHTML=`
     <div class="verse">"${v.v}"</div>
     <div class="verse-ref">${v.r}</div>
     <div class="verse-src">English Standard Version · BibleGateway</div>`;
 }
-function nextVerse() { verseIdx++; renderVerse(); }
+function nextVerse(){verseIdx++;renderVerse();}
 
-async function loadChallenge() {
-  document.getElementById('challenge').innerHTML = '<div class="ld">Generating challenge...</div>';
-  try {
-    const text = await callAI(
-      `You are a creative coach for Ethan, an intermediate-to-advanced 19-year-old filmmaker, photographer, and visual storyteller at BSU. Generate a specific, exciting daily creative challenge doable in one day. Rotate between: Filmmaking, Photography, Editing, Visual Design, Storytelling. Return ONLY a raw JSON object with no markdown fences: {"challenge":"one punchy sentence","tip":"1-2 sentences of concrete technique advice","category":"one of the five categories"}`,
-      `Creative challenge for ${new Date().toDateString()}. Raw JSON only.`
-    );
-    const p = tryJSON(text);
-    if (p && p.challenge) {
-      document.getElementById('challenge').innerHTML = `
-        <div class="challenge">${p.challenge}</div>
-        <div class="challenge-tip">${p.tip}</div>
-        <div class="tag">${p.category}</div>`;
-    } else throw new Error('parse');
-  } catch(e) {
-    document.getElementById('challenge').innerHTML = `<div class="err">Could not load — tap new prompt to retry.</div>`;
-  }
+function renderChallenge(){
+  const c=CHALLENGES[challengeIdx%CHALLENGES.length];
+  document.getElementById('challenge').innerHTML=`
+    <div class="challenge">${c.c}</div>
+    <div class="challenge-tip">${c.t}</div>
+    <div class="tag">${c.cat}</div>`;
 }
+function nextChallenge(){challengeIdx++;renderChallenge();}
 
-async function loadQuote() {
-  document.getElementById('quote').innerHTML = '<div class="ld">Loading quote...</div>';
-  try {
-    const text = await callAI(
-      `Return ONLY a raw JSON object with no markdown fences: {"quote":"inspiring quote","author":"Author Name"}. Non-cliche quote about creativity, filmmaking, storytelling, faith, or ambition.`,
-      `Quote for ${new Date().toDateString()}. Raw JSON only.`
-    );
-    const q = tryJSON(text);
-    if (q && q.quote) {
-      document.getElementById('quote').innerHTML = `<div class="quote">"${q.quote}"</div><div class="quote-by">— ${q.author}</div>`;
-    } else throw new Error('parse');
-  } catch(e) {
-    document.getElementById('quote').innerHTML = `<div class="quote">"Every artist was first an amateur."</div><div class="quote-by">— Ralph Waldo Emerson</div>`;
-  }
+function renderQuote(){
+  const q=QUOTES[quoteIdx%QUOTES.length];
+  document.getElementById('quote').innerHTML=`<div class="quote">"${q.q}"</div><div class="quote-by">— ${q.a}</div>`;
 }
+function nextQuote(){quoteIdx++;renderQuote();}
 
-function saveTodos() {
-  localStorage.setItem('em_todos', JSON.stringify(todos));
-  document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
-}
-function renderTodos() {
-  const el = document.getElementById('todos');
-  if (!todos.length) { el.innerHTML = '<div class="no-ev">No tasks yet.</div>'; return; }
-  el.innerHTML = todos.map((t,i)=>`
+function saveTodos(){localStorage.setItem('em_todos',JSON.stringify(todos));document.getElementById('m-tasks').textContent=todos.filter(t=>!t.done).length;}
+function renderTodos(){
+  const el=document.getElementById('todos');
+  if(!todos.length){el.innerHTML='<div class="no-ev">No tasks yet.</div>';return;}
+  el.innerHTML=todos.map((t,i)=>`
     <div class="ti">
       <div class="tck ${t.done?'done':''}" onclick="toggleTodo(${i})"></div>
       <div class="tlbl ${t.done?'done':''}" onclick="toggleTodo(${i})">${t.text}</div>
       <button class="tdel" onclick="delTodo(${i})">×</button>
     </div>`).join('');
-  document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
+  document.getElementById('m-tasks').textContent=todos.filter(t=>!t.done).length;
 }
 function toggleTodo(i){todos[i].done=!todos[i].done;saveTodos();renderTodos();}
 function delTodo(i){todos.splice(i,1);saveTodos();renderTodos();}
@@ -443,13 +446,12 @@ function addTodo(){
   saveTodos();renderTodos();
 }
 
-initHeader(); tick(); setInterval(tick,10000);
-renderTodos(); renderVerse();
+initHeader();tick();setInterval(tick,10000);
+renderTodos();renderVerse();renderChallenge();renderQuote();
 loadWeather();
 loadCalendar();
-loadChallenge();
-loadQuote();
 </script>
 </body>
 </html>
+
 
