@@ -98,23 +98,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
 </style>
 </head>
 <body>
-
 <div class="bar">
   <div class="bar-l"><div class="dot"></div><div class="bar-title">Morning Briefing</div></div>
   <div class="bar-time" id="clock"></div>
 </div>
-
 <div class="hero">
   <div class="greeting" id="greeting">Good morning, <em>Ethan</em></div>
   <div class="dateline" id="dateline"></div>
 </div>
-
 <div class="metrics">
   <div class="met"><div class="met-l">Events</div><div class="met-v" id="m-events">—</div></div>
   <div class="met"><div class="met-l">Nampa</div><div class="met-v" id="m-temp">—</div></div>
   <div class="met"><div class="met-l">Tasks</div><div class="met-v" id="m-tasks">—</div></div>
 </div>
-
 <div class="main">
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Weather — Nampa, ID</div><button class="rbtn" onclick="loadWeather()">↻ refresh</button></div>
@@ -151,7 +147,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
     </div>
   </div>
 </div>
-
 <script>
 const WORKER = 'https://bold-pine-5553.ethanspade01.workers.dev';
 const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=43.6099&longitude=-116.5597&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FBoise&forecast_days=1';
@@ -195,7 +190,6 @@ let todos = [];
 let verseIdx = new Date().getDate() % VERSES.length;
 try { todos = JSON.parse(localStorage.getItem('em_todos') || '[]'); } catch(e) { todos=[]; }
 
-// clock
 function tick() {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
@@ -206,34 +200,28 @@ function initHeader() {
   document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 }
 
-// ai via worker
 async function callAI(system, user) {
   const r = await fetch(WORKER + '/ai', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
-      system,
-      messages: [{ role: 'user', content: user }]
-    })
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens:600, system, messages:[{role:'user',content:user}]})
   });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
+  if (!r.ok) throw new Error('HTTP '+r.status);
   const d = await r.json();
-  return d.content.find(b => b.type === 'text')?.text || '';
+  if (d.error) throw new Error(d.error);
+  return d.content.find(b=>b.type==='text')?.text || '';
 }
 function tryJSON(s) {
   try { return JSON.parse(s.replace(/```json|```/g,'').trim()); } catch(e) { return null; }
 }
 
-// weather
 async function loadWeather() {
   document.getElementById('wx').innerHTML = '<div class="ld">Loading weather...</div>';
   try {
-    const d = await fetch(WX_URL).then(r => r.json());
+    const d = await fetch(WX_URL).then(r=>r.json());
     wxData = d;
     const c = d.current, dy = d.daily;
-    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m) + '°F';
+    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m)+'°F';
     document.getElementById('wx').innerHTML = `
       <div class="wx-row">
         <div>
@@ -253,32 +241,93 @@ async function loadWeather() {
   }
 }
 
-// calendar via worker
+// Parse iCal and convert UTC times to Mountain Time (America/Denver)
 function parseIcal(text) {
   const events = [];
   const blocks = text.split('BEGIN:VEVENT');
-  const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+
+  // Get today's date string in Mountain Time
+  const nowMT = new Date().toLocaleDateString('en-CA', {timeZone:'America/Denver'}).replace(/-/g,'');
+
   for (let i = 1; i < blocks.length; i++) {
     const b = blocks[i];
-    const get = k => { const m = b.match(new RegExp(k+'[^:]*:(.+)')); return m ? m[1].replace(/\r/g,'').trim() : ''; };
-    const summary = get('SUMMARY');
-    const dtstart = get('DTSTART');
+
+    const getVal = (key) => {
+      const m = b.match(new RegExp('(?:^|\\n)' + key + '[^:]*:([^\\n]+)', 'i'));
+      return m ? m[1].replace(/\r/g,'').trim() : '';
+    };
+
+    const summary = getVal('SUMMARY');
+    const dtstart = getVal('DTSTART');
+    const tzid = (b.match(/DTSTART;TZID=([^:]+):/) || [])[1] || '';
+
     if (!summary || !dtstart) continue;
-    if (dtstart.replace(/T.*/,'') !== todayStr) continue;
+
+    let eventDateStr = '';
     let timeStr = 'All day';
+
     if (dtstart.includes('T')) {
-      const tp = dtstart.replace(/.*T/,'').slice(0,4);
-      let h = parseInt(tp.slice(0,2));
-      const m = tp.slice(2,4);
-      const ap = h >= 12 ? 'PM' : 'AM';
-      if (h > 12) h -= 12;
-      if (h === 0) h = 12;
-      timeStr = `${h}:${m} ${ap}`;
+      let eventDate;
+      if (dtstart.endsWith('Z')) {
+        // UTC time — convert to Mountain
+        const yr = dtstart.slice(0,4), mo = dtstart.slice(4,6), dy = dtstart.slice(6,8);
+        const hr = dtstart.slice(9,11), mn = dtstart.slice(11,13), sc = dtstart.slice(13,15);
+        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:${sc}Z`);
+      } else if (tzid) {
+        // Has TZID — parse as local time in that zone
+        const bare = dtstart.replace(/.*:/,'');
+        const yr = bare.slice(0,4), mo = bare.slice(4,6), dy = bare.slice(6,8);
+        const hr = bare.slice(9,11), mn = bare.slice(11,13);
+        // Create date in specified timezone by formatting
+        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
+        // Adjust for timezone offset difference
+        const tzOffset = getTimezoneOffset(tzid, eventDate);
+        const mtOffset = getTimezoneOffset('America/Denver', eventDate);
+        eventDate = new Date(eventDate.getTime() + (tzOffset - mtOffset) * 60000);
+      } else {
+        const bare = dtstart.replace(/.*:/,'');
+        const yr = bare.slice(0,4), mo = bare.slice(4,6), dy = bare.slice(6,8);
+        const hr = bare.slice(9,11), mn = bare.slice(11,13);
+        eventDate = new Date(`${yr}-${mo}-${dy}T${hr}:${mn}:00`);
+      }
+
+      eventDateStr = eventDate.toLocaleDateString('en-CA', {timeZone:'America/Denver'}).replace(/-/g,'');
+      timeStr = eventDate.toLocaleTimeString('en-US', {timeZone:'America/Denver', hour:'numeric', minute:'2-digit'});
+    } else {
+      // All-day event — DATE only
+      eventDateStr = dtstart.replace(/.*:/,'').slice(0,8);
+      timeStr = 'All day';
     }
-    events.push({ title: summary, time: timeStr });
+
+    if (eventDateStr !== nowMT) continue;
+
+    // Check EXDATE — skip excluded dates
+    const exdates = [];
+    const exRe = /EXDATE[^:]*:([^\r\n]+)/gi;
+    let exMatch;
+    while ((exMatch = exRe.exec(b)) !== null) {
+      exdates.push(exMatch[1].trim());
+    }
+    const dtStartRaw = getVal('DTSTART');
+    if (exdates.some(ex => ex.includes(dtStartRaw.replace(/.*:/,'')))) continue;
+
+    events.push({title: summary, time: timeStr});
   }
-  events.sort((a,b) => a.time === 'All day' ? -1 : a.time.localeCompare(b.time));
+
+  events.sort((a,b) => {
+    if (a.time === 'All day') return -1;
+    if (b.time === 'All day') return 1;
+    return new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time);
+  });
   return events;
+}
+
+function getTimezoneOffset(tz, date) {
+  try {
+    const utcDate = new Date(date.toLocaleString('en-US', {timeZone:'UTC'}));
+    const tzDate = new Date(date.toLocaleString('en-US', {timeZone:tz}));
+    return (utcDate - tzDate) / 60000;
+  } catch(e) { return 0; }
 }
 
 async function loadCalendar() {
@@ -309,7 +358,6 @@ async function loadCalendar() {
   }
 }
 
-// briefing
 async function loadBriefing() {
   document.getElementById('briefing').innerHTML = '<div class="ld">Generating...</div>';
   const wx = wxData ? `${Math.round(wxData.current.temperature_2m)}°F, ${WX_CODES[wxData.current.weathercode]||'unknown'}, high ${Math.round(wxData.daily.temperature_2m_max[0])}°F` : 'unavailable';
@@ -326,7 +374,6 @@ async function loadBriefing() {
   }
 }
 
-// verse
 function renderVerse() {
   const v = VERSES[verseIdx % VERSES.length];
   document.getElementById('verse').innerHTML = `
@@ -336,7 +383,6 @@ function renderVerse() {
 }
 function nextVerse() { verseIdx++; renderVerse(); }
 
-// challenge
 async function loadChallenge() {
   document.getElementById('challenge').innerHTML = '<div class="ld">Generating challenge...</div>';
   try {
@@ -356,7 +402,6 @@ async function loadChallenge() {
   }
 }
 
-// quote
 async function loadQuote() {
   document.getElementById('quote').innerHTML = '<div class="ld">Loading quote...</div>';
   try {
@@ -373,7 +418,6 @@ async function loadQuote() {
   }
 }
 
-// todos
 function saveTodos() {
   localStorage.setItem('em_todos', JSON.stringify(todos));
   document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
@@ -399,7 +443,6 @@ function addTodo(){
   saveTodos();renderTodos();
 }
 
-// init
 initHeader(); tick(); setInterval(tick,10000);
 renderTodos(); renderVerse();
 loadWeather();
@@ -409,3 +452,4 @@ loadQuote();
 </script>
 </body>
 </html>
+
