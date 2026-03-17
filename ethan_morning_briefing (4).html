@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Morning"/>
+<meta name="theme-color" content="#0e0e0f"/>
+<title>Morning Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0f;--surf:#161618;--surf2:#1c1c1e;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.12);
+  --t1:#f0ede8;--t2:#9b9790;--t3:#55524f;
+  --gold:#c9a84c;--gold2:#e8c87a;--blue:#4a9eff;--green:#4ecb8d;--red:#ff6b6b;
+  --r:14px;--rs:8px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100dvh;overscroll-behavior:none}
+.bar{position:sticky;top:0;z-index:99;background:rgba(14,14,15,0.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:0.5px solid var(--b1);padding:calc(13px + var(--st)) 20px 13px;display:flex;align-items:center;justify-content:space-between}
+.bar-l{display:flex;align-items:center;gap:9px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.bar-title{font-family:'DM Serif Display',serif;font-size:15px;color:var(--t1)}
+.bar-time{font-size:12px;color:var(--t3);letter-spacing:.04em}
+.hero{padding:40px 20px 28px}
+.greeting{font-family:'DM Serif Display',serif;font-size:clamp(32px,7vw,50px);line-height:1.1;color:var(--t1)}
+.greeting em{font-style:italic;color:var(--gold)}
+.dateline{font-size:11px;color:var(--t3);margin-top:9px;letter-spacing:.09em;text-transform:uppercase}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px 28px}
+.met{background:var(--surf);border:0.5px solid var(--b1);border-radius:var(--rs);padding:11px 13px}
+.met-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.met-v{font-size:19px;font-weight:500;color:var(--t1)}
+.main{padding:0 20px calc(36px + var(--sb))}
+.sec{margin-bottom:22px}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.sec-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;font-weight:500;display:flex;align-items:center;gap:6px}
+.sec-lbl::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;display:inline-block}
+.rbtn{font-family:'DM Sans',sans-serif;font-size:11px;color:var(--t3);background:transparent;border:0.5px solid var(--b1);border-radius:20px;padding:5px 11px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.rbtn:active{background:var(--surf2)}
+.card{background:var(--surf);border:0.5px solid var(--b1);border-radius:var(--r);padding:17px 19px}
+.card-gold{border-color:rgba(201,168,76,0.2)}
+.ld{font-size:13px;color:var(--t3)}
+.err{font-size:13px;color:var(--red);line-height:1.6}
+.wx-row{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.wx-temp{font-family:'DM Serif Display',serif;font-size:40px;color:var(--t1);line-height:1}
+.wx-desc{font-size:13px;color:var(--t2);margin-top:4px}
+.wx-dets{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:2px}
+.wx-d{font-size:12px;color:var(--t3)}
+.wx-d b{color:var(--t2);font-weight:400}
+.ev-list{display:flex;flex-direction:column}
+.ev{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:0.5px solid var(--b1)}
+.ev:last-of-type{border-bottom:none;padding-bottom:0}
+.ev:first-of-type{padding-top:0}
+.ev-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:5px}
+.ev-info{flex:1}
+.ev-title{font-size:14px;color:var(--t1);line-height:1.4}
+.ev-time{font-size:12px;color:var(--t3);margin-top:2px}
+.no-ev{font-size:13px;color:var(--t3)}
+.briefing{font-size:14px;color:var(--t2);line-height:1.85}
+.verse{font-family:'DM Serif Display',serif;font-size:17px;color:var(--t1);line-height:1.65;font-style:italic}
+.verse-ref{font-size:13px;color:var(--gold);margin-top:11px}
+.verse-src{font-size:10px;color:var(--t3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+.challenge{font-size:15px;color:var(--t1);line-height:1.55;font-weight:500}
+.challenge-tip{font-size:13px;color:var(--t2);margin-top:9px;line-height:1.7}
+.tag{display:inline-block;font-size:10px;padding:3px 10px;border-radius:20px;margin-top:12px;background:rgba(201,168,76,0.09);color:var(--gold2);border:0.5px solid rgba(201,168,76,0.22);letter-spacing:.07em;text-transform:uppercase}
+.quote{font-family:'DM Serif Display',serif;font-size:16px;color:var(--t1);line-height:1.65;font-style:italic}
+.quote-by{font-size:13px;color:var(--t3);margin-top:9px}
+.todos{display:flex;flex-direction:column;gap:9px;margin-bottom:13px}
+.ti{display:flex;align-items:center;gap:11px}
+.tck{width:20px;height:20px;border-radius:6px;border:0.5px solid var(--b2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tck.done{background:rgba(78,203,141,0.14);border-color:rgba(78,203,141,0.38)}
+.tck.done::after{content:'';display:block;width:10px;height:6px;border-left:1.5px solid var(--green);border-bottom:1.5px solid var(--green);transform:rotate(-45deg) translateY(-1px)}
+.tlbl{font-size:14px;color:var(--t1);flex:1;line-height:1.4;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.tlbl.done{text-decoration:line-through;color:var(--t3)}
+.tdel{font-size:20px;color:var(--t3);background:none;border:none;cursor:pointer;padding:3px 7px;line-height:1;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.tadd{display:flex;gap:8px}
+.tadd input{flex:1;font-family:'DM Sans',sans-serif;font-size:16px;background:var(--surf2);border:0.5px solid var(--b1);border-radius:var(--rs);padding:10px 13px;color:var(--t1);outline:none;-webkit-appearance:none}
+.tadd input::placeholder{color:var(--t3)}
+.tadd button{font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 15px;border-radius:var(--rs);border:0.5px solid rgba(201,168,76,0.32);background:rgba(201,168,76,0.07);color:var(--gold2);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tadd button:active{background:rgba(201,168,76,0.16)}
+@keyframes up{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.hero{animation:up .4s ease both}
+.metrics{animation:up .4s .07s ease both}
+.sec:nth-child(1){animation:up .4s .11s ease both}
+.sec:nth-child(2){animation:up .4s .16s ease both}
+.sec:nth-child(3){animation:up .4s .20s ease both}
+.sec:nth-child(4){animation:up .4s .24s ease both}
+.sec:nth-child(5){animation:up .4s .28s ease both}
+.sec:nth-child(6){animation:up .4s .32s ease both}
+.sec:nth-child(7){animation:up .4s .36s ease both}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-l"><div class="dot"></div><div class="bar-title">Morning Briefing</div></div>
+  <div class="bar-time" id="clock"></div>
+</div>
+
+<div class="hero">
+  <div class="greeting" id="greeting">Good morning, <em>Ethan</em></div>
+  <div class="dateline" id="dateline"></div>
+</div>
+
+<div class="metrics">
+  <div class="met"><div class="met-l">Events</div><div class="met-v" id="m-events">—</div></div>
+  <div class="met"><div class="met-l">Nampa</div><div class="met-v" id="m-temp">—</div></div>
+  <div class="met"><div class="met-l">Tasks</div><div class="met-v" id="m-tasks">—</div></div>
+</div>
+
+<div class="main">
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Weather — Nampa, ID</div><button class="rbtn" onclick="loadWeather()">↻ refresh</button></div>
+    <div class="card"><div id="wx" class="ld">Loading weather...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Today's calendar</div><button class="rbtn" onclick="loadCalendar()">↻ refresh</button></div>
+    <div class="card"><div id="cal" class="ld">Loading events...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">AI morning briefing</div><button class="rbtn" onclick="loadBriefing()">↻ regenerate</button></div>
+    <div class="card"><div id="briefing" class="ld">Generating your briefing...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Verse of the day — ESV</div><button class="rbtn" onclick="nextVerse()">↻ new verse</button></div>
+    <div class="card card-gold"><div id="verse"></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Daily creative challenge</div><button class="rbtn" onclick="loadChallenge()">↻ new prompt</button></div>
+    <div class="card"><div id="challenge" class="ld">Generating your challenge...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Quote of the day</div><button class="rbtn" onclick="loadQuote()">↻ new quote</button></div>
+    <div class="card"><div id="quote" class="ld">Loading quote...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Quick to-do</div><button class="rbtn" onclick="clearDone()">✕ clear done</button></div>
+    <div class="card">
+      <div class="todos" id="todos"></div>
+      <div class="tadd">
+        <input id="ti" type="text" placeholder="Add a task..." autocomplete="off" autocorrect="off" onkeydown="if(event.key==='Enter')addTodo()"/>
+        <button onclick="addTodo()">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── config ──────────────────────────────────────────────────────
+const AI_KEY = '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';
+const ICAL_URL = 'https://calendar.google.com/calendar/ical/ethanspade%40u.boisestate.edu/private-7198c598634b5b1c7ba6a621ae6e69e6/basic.ics';
+const ICAL_PROXY = 'https://corsproxy.io/?url=' + encodeURIComponent(ICAL_URL);
+const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=43.6099&longitude=-116.5597&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FBoise&forecast_days=1';
+const WX_CODES = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Freezing fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Rain showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm'};
+
+// ── verses (ESV, BibleGateway) ───────────────────────────────────
+const VERSES = [
+  {v:"The steadfast love of the Lord never ceases; his mercies never come to an end; they are new every morning; great is your faithfulness.",r:"Lamentations 3:22-23"},
+  {v:"I can do all things through him who strengthens me.",r:"Philippians 4:13"},
+  {v:"Trust in the Lord with all your heart, and do not lean on your own understanding. In all your ways acknowledge him, and he will make straight your paths.",r:"Proverbs 3:5-6"},
+  {v:"Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.",r:"Joshua 1:9"},
+  {v:"But they who wait for the Lord shall renew their strength; they shall mount up with wings like eagles; they shall run and not be weary; they shall walk and not faint.",r:"Isaiah 40:31"},
+  {v:"Commit your work to the Lord, and your plans will be established.",r:"Proverbs 16:3"},
+  {v:"And we know that for those who love God all things work together for good, for those who are called according to his purpose.",r:"Romans 8:28"},
+  {v:"For we are his workmanship, created in Christ Jesus for good works, which God prepared beforehand, that we should walk in them.",r:"Ephesians 2:10"},
+  {v:"So whether you eat or drink, or whatever you do, do all to the glory of God.",r:"1 Corinthians 10:31"},
+  {v:"Delight yourself in the Lord, and he will give you the desires of your heart.",r:"Psalm 37:4"},
+  {v:"For nothing will be impossible with God.",r:"Luke 1:37"},
+  {v:"Do not be anxious about anything, but in everything by prayer and supplication with thanksgiving let your requests be made known to God.",r:"Philippians 4:6"},
+  {v:"And let us not grow weary of doing good, for in due season we will reap, if we do not give up.",r:"Galatians 6:9"},
+  {v:"For the Spirit God gave us does not make us timid, but gives us power, love and self-discipline.",r:"2 Timothy 1:7"},
+  {v:"Whatever you do, work heartily, as for the Lord and not for men.",r:"Colossians 3:23"},
+  {v:"The Lord will fight for you; you need only to be still.",r:"Exodus 14:14"},
+  {v:"Create in me a clean heart, O God, and renew a right spirit within me.",r:"Psalm 51:10"},
+  {v:"I lift up my eyes to the hills. From where does my help come? My help comes from the Lord, who made heaven and earth.",r:"Psalm 121:1-2"},
+  {v:"The Lord your God is in your midst, a mighty one who will save; he will rejoice over you with gladness.",r:"Zephaniah 3:17"},
+  {v:"Seek first the kingdom of God and his righteousness, and all these things will be added to you.",r:"Matthew 6:33"},
+  {v:"For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.",r:"John 3:16"},
+  {v:"He has told you, O man, what is good; and what does the Lord require of you but to do justice, and to love kindness, and to walk humbly with your God.",r:"Micah 6:8"},
+  {v:"For I know the plans I have for you, declares the Lord, plans for welfare and not for evil, to give you a future and a hope.",r:"Jeremiah 29:11"},
+  {v:"The heart of man plans his way, but the Lord establishes his steps.",r:"Proverbs 16:9"},
+  {v:"Have I not commanded you? Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.",r:"Joshua 1:9"},
+  {v:"No temptation has overtaken you that is not common to man. God is faithful, and he will not let you be tempted beyond your ability.",r:"1 Corinthians 10:13"},
+  {v:"I have been crucified with Christ. It is no longer I who live, but Christ who lives in me.",r:"Galatians 2:20"},
+  {v:"The Lord is my shepherd; I shall not want.",r:"Psalm 23:1"},
+  {v:"For by grace you have been saved through faith. And this is not your own doing; it is the gift of God.",r:"Ephesians 2:8"},
+  {v:"Even youths shall faint and be weary, and young men shall fall exhausted; but they who wait for the Lord shall renew their strength.",r:"Isaiah 40:30-31"}
+];
+
+// ── state ────────────────────────────────────────────────────────
+let wxData = null;
+let calEvents = [];
+let todos = [];
+let verseIdx = new Date().getDate() % VERSES.length;
+try { todos = JSON.parse(localStorage.getItem('em_todos') || '[]'); } catch(e) { todos=[]; }
+
+// ── clock / header ───────────────────────────────────────────────
+function tick() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+function initHeader() {
+  const h = new Date().getHours();
+  const g = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('greeting').innerHTML = `${g}, <em>Ethan</em>`;
+  document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+// ── ai helper ────────────────────────────────────────────────────
+async function callAI(system, user) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': AI_KEY,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:600,
+      system,
+      messages:[{role:'user',content:user}]
+    })
+  });
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  const d = await r.json();
+  return d.content.find(b=>b.type==='text')?.text || '';
+}
+function tryJSON(s) {
+  try { return JSON.parse(s.replace(/```json|```/g,'').trim()); } catch(e) { return null; }
+}
+
+// ── weather ──────────────────────────────────────────────────────
+async function loadWeather() {
+  document.getElementById('wx').innerHTML = '<div class="ld">Loading weather...</div>';
+  try {
+    const d = await fetch(WX_URL).then(r=>r.json());
+    wxData = d;
+    const c = d.current, dy = d.daily;
+    document.getElementById('m-temp').textContent = Math.round(c.temperature_2m)+'°F';
+    document.getElementById('wx').innerHTML = `
+      <div class="wx-row">
+        <div>
+          <div class="wx-temp">${Math.round(c.temperature_2m)}°F</div>
+          <div class="wx-desc">${WX_CODES[c.weathercode]||'Unknown'}</div>
+        </div>
+        <div class="wx-dets">
+          <div class="wx-d">High <b>${Math.round(dy.temperature_2m_max[0])}°</b></div>
+          <div class="wx-d">Low <b>${Math.round(dy.temperature_2m_min[0])}°</b></div>
+          <div class="wx-d">Humidity <b>${c.relativehumidity_2m}%</b></div>
+          <div class="wx-d">Wind <b>${Math.round(c.windspeed_10m)} mph</b></div>
+          <div class="wx-d">Rain <b>${dy.precipitation_probability_max[0]}%</b></div>
+        </div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('wx').innerHTML = '<div class="err">Could not load weather.</div>';
+  }
+}
+
+// ── calendar (iCal parse) ────────────────────────────────────────
+function parseIcal(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT');
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10).replace(/-/g,'');
+
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const get = (key) => {
+      const m = block.match(new RegExp(key + '[^:]*:(.+)'));
+      return m ? m[1].replace(/\r/g,'').trim() : '';
+    };
+    const summary = get('SUMMARY');
+    const dtstart = get('DTSTART');
+    const dtend = get('DTEND');
+
+    if (!summary || !dtstart) continue;
+
+    // Check if event is today
+    const datepart = dtstart.replace(/T.*/,'');
+    if (datepart !== todayStr) continue;
+
+    // Format time
+    let timeStr = '';
+    if (dtstart.includes('T')) {
+      const timePart = dtstart.replace(/.*T/,'').slice(0,4);
+      let h = parseInt(timePart.slice(0,2));
+      const m = timePart.slice(2,4);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      timeStr = `${h}:${m} ${ampm}`;
+    } else {
+      timeStr = 'All day';
+    }
+
+    events.push({ title: summary, time: timeStr });
+  }
+
+  // Sort by time
+  events.sort((a,b) => a.time === 'All day' ? -1 : a.time.localeCompare(b.time));
+  return events;
+}
+
+async function loadCalendar() {
+  document.getElementById('cal').innerHTML = '<div class="ld">Loading events...</div>';
+  try {
+    const resp = await fetch(ICAL_PROXY);
+    if (!resp.ok) throw new Error('fetch failed');
+    const text = await resp.text();
+    calEvents = parseIcal(text);
+    document.getElementById('m-events').textContent = calEvents.length;
+    if (!calEvents.length) {
+      document.getElementById('cal').innerHTML = '<div class="no-ev">No events today — enjoy the free day.</div>';
+    } else {
+      document.getElementById('cal').innerHTML = `<div class="ev-list">${calEvents.map(e=>`
+        <div class="ev">
+          <div class="ev-dot"></div>
+          <div class="ev-info">
+            <div class="ev-title">${e.title}</div>
+            <div class="ev-time">${e.time}</div>
+          </div>
+        </div>`).join('')}</div>`;
+    }
+    loadBriefing();
+  } catch(e) {
+    document.getElementById('cal').innerHTML = '<div class="err">Could not load calendar. Tap refresh to try again.</div>';
+    document.getElementById('m-events').textContent = '—';
+    loadBriefing();
+  }
+}
+
+// ── briefing ─────────────────────────────────────────────────────
+async function loadBriefing() {
+  document.getElementById('briefing').innerHTML = '<div class="ld">Generating...</div>';
+  const wx = wxData
+    ? `${Math.round(wxData.current.temperature_2m)}°F, ${WX_CODES[wxData.current.weathercode]||'unknown'}, high ${Math.round(wxData.daily.temperature_2m_max[0])}°F`
+    : 'unavailable';
+  const cal = calEvents.length ? calEvents.map(e=>`${e.time}: ${e.title}`).join(', ') : 'no events today';
+  const tasks = todos.filter(t=>!t.done).map(t=>t.text).join(', ') || 'none';
+  try {
+    const text = await callAI(
+      `You are a morning briefing assistant for Ethan — a 19-year-old BSU student studying Innovation & Design. He loves filmmaking, video production, photography, and creative technology. He is the first in his family to attend college. Write a warm, energetic 2-4 sentence briefing. Sound like a smart encouraging friend, not a robot. Reference his weather and schedule naturally. End with a small nudge toward his creative goals.`,
+      `Date: ${new Date().toDateString()}. Weather in Nampa ID: ${wx}. Schedule: ${cal}. Open tasks: ${tasks}. Write my morning briefing.`
+    );
+    document.getElementById('briefing').innerHTML = `<div class="briefing">${text}</div>`;
+  } catch(e) {
+    document.getElementById('briefing').innerHTML = `<div class="err">Could not generate briefing — tap regenerate to retry.</div>`;
+  }
+}
+
+// ── verse ────────────────────────────────────────────────────────
+function renderVerse() {
+  const v = VERSES[verseIdx % VERSES.length];
+  document.getElementById('verse').innerHTML = `
+    <div class="verse">"${v.v}"</div>
+    <div class="verse-ref">${v.r}</div>
+    <div class="verse-src">English Standard Version · BibleGateway</div>`;
+}
+function nextVerse() { verseIdx++; renderVerse(); }
+
+// ── challenge ─────────────────────────────────────────────────────
+async function loadChallenge() {
+  document.getElementById('challenge').innerHTML = '<div class="ld">Generating challenge...</div>';
+  try {
+    const text = await callAI(
+      `You are a creative coach for Ethan, an intermediate-to-advanced 19-year-old filmmaker, photographer, and visual storyteller at BSU. Generate a specific, exciting daily creative challenge doable in one day. Rotate between: Filmmaking, Photography, Editing, Visual Design, Storytelling. Return ONLY a raw JSON object with no markdown fences: {"challenge":"one punchy sentence","tip":"1-2 sentences of concrete technique advice","category":"one of the five categories"}`,
+      `Creative challenge for ${new Date().toDateString()}. Raw JSON only.`
+    );
+    const p = tryJSON(text);
+    if (p && p.challenge) {
+      document.getElementById('challenge').innerHTML = `
+        <div class="challenge">${p.challenge}</div>
+        <div class="challenge-tip">${p.tip}</div>
+        <div class="tag">${p.category}</div>`;
+    } else throw new Error('parse');
+  } catch(e) {
+    document.getElementById('challenge').innerHTML = `<div class="err">Could not load — tap "new prompt" to retry.</div>`;
+  }
+}
+
+// ── quote ─────────────────────────────────────────────────────────
+async function loadQuote() {
+  document.getElementById('quote').innerHTML = '<div class="ld">Loading quote...</div>';
+  try {
+    const text = await callAI(
+      `Return ONLY a raw JSON object with no markdown fences: {"quote":"inspiring quote","author":"Author Name"}. Pick a non-cliche quote about creativity, filmmaking, storytelling, faith, or ambition.`,
+      `Quote for ${new Date().toDateString()}. Raw JSON only.`
+    );
+    const q = tryJSON(text);
+    if (q && q.quote) {
+      document.getElementById('quote').innerHTML = `<div class="quote">"${q.quote}"</div><div class="quote-by">— ${q.author}</div>`;
+    } else throw new Error('parse');
+  } catch(e) {
+    document.getElementById('quote').innerHTML = `<div class="quote">"Every artist was first an amateur."</div><div class="quote-by">— Ralph Waldo Emerson</div>`;
+  }
+}
+
+// ── todos ─────────────────────────────────────────────────────────
+function saveTodos() {
+  localStorage.setItem('em_todos', JSON.stringify(todos));
+  document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
+}
+function renderTodos() {
+  const el = document.getElementById('todos');
+  if (!todos.length) { el.innerHTML = '<div class="no-ev">No tasks yet.</div>'; return; }
+  el.innerHTML = todos.map((t,i)=>`
+    <div class="ti">
+      <div class="tck ${t.done?'done':''}" onclick="toggleTodo(${i})"></div>
+      <div class="tlbl ${t.done?'done':''}" onclick="toggleTodo(${i})">${t.text}</div>
+      <button class="tdel" onclick="delTodo(${i})">×</button>
+    </div>`).join('');
+  document.getElementById('m-tasks').textContent = todos.filter(t=>!t.done).length;
+}
+function toggleTodo(i){todos[i].done=!todos[i].done;saveTodos();renderTodos();}
+function delTodo(i){todos.splice(i,1);saveTodos();renderTodos();}
+function clearDone(){todos=todos.filter(t=>!t.done);saveTodos();renderTodos();}
+function addTodo(){
+  const el=document.getElementById('ti');
+  const v=el.value.trim();if(!v)return;
+  todos.push({text:v,done:false});el.value='';
+  saveTodos();renderTodos();
+}
+
+// ── init ──────────────────────────────────────────────────────────
+initHeader(); tick(); setInterval(tick,10000);
+renderTodos(); renderVerse();
+loadWeather();
+loadCalendar();
+loadChallenge();
+loadQuote();
+</script>
+</body>
+</html>
