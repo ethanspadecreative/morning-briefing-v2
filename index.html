@@ -83,6 +83,32 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
 .tadd input::placeholder{color:var(--t3)}
 .tadd button{font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 15px;border-radius:var(--rs);border:0.5px solid rgba(201,168,76,0.32);background:rgba(201,168,76,0.07);color:var(--gold2);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .tadd button:active{background:rgba(201,168,76,0.16)}
+.commute-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.commute-time{font-family:'DM Serif Display',serif;font-size:38px;color:var(--t1);line-height:1}
+.commute-sub{font-size:13px;color:var(--t2);margin-top:4px}
+.commute-detail{font-size:12px;color:var(--t3);margin-top:2px}
+.commute-badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;margin-top:10px;font-weight:500}
+.commute-badge.light{background:rgba(78,203,141,0.12);color:var(--green);border:0.5px solid rgba(78,203,141,0.3)}
+.commute-badge.moderate{background:rgba(201,168,76,0.12);color:var(--gold2);border:0.5px solid rgba(201,168,76,0.3)}
+.commute-badge.heavy{background:rgba(255,107,107,0.12);color:var(--red);border:0.5px solid rgba(255,107,107,0.3)}
+.sleep-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sleep-btn{font-family:'DM Sans',sans-serif;font-size:13px;padding:13px 10px;border-radius:var(--r);border:0.5px solid var(--b2);background:var(--surf2);color:var(--t2);cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:all 0.15s}
+.sleep-btn:active{transform:scale(0.97)}
+.sleep-btn.active{border-color:rgba(74,158,255,0.4);background:rgba(74,158,255,0.08);color:var(--blue)}
+.sleep-btn-icon{font-size:20px;margin-bottom:4px}
+.sleep-btn-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;display:block}
+.sleep-btn-time{font-size:13px;color:var(--t1);margin-top:3px;font-weight:500;min-height:18px}
+.sleep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sleep-stat{background:var(--surf2);border-radius:var(--rs);padding:10px 12px;text-align:center}
+.sleep-stat-val{font-family:'DM Serif Display',serif;font-size:22px;color:var(--t1)}
+.sleep-stat-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.sleep-history{margin-top:14px;border-top:0.5px solid var(--b1);padding-top:12px}
+.sleep-history-title{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.sleep-bars{display:flex;align-items:flex-end;gap:6px;height:40px}
+.sleep-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%}
+.sleep-bar{width:100%;background:rgba(74,158,255,0.25);border-radius:3px;min-height:3px;transition:height 0.3s ease}
+.sleep-bar.today{background:rgba(74,158,255,0.6)}
+.sleep-bar-day{font-size:9px;color:var(--t3);text-transform:uppercase}
 @keyframes up{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
 .hero{animation:up .4s ease both}
 .metrics{animation:up .4s .07s ease both}
@@ -136,6 +162,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-h
     <div class="sec-hd"><div class="sec-lbl">Quote of the day</div><button class="rbtn" onclick="nextQuote()">↻ new quote</button></div>
     <div class="card"><div id="quote"></div></div>
   </div>
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Commute to BSU</div><button class="rbtn" onclick="loadCommute()">↻ refresh</button></div>
+    <div class="card" id="commute-card">
+      <div id="commute" class="ld">Loading drive time...</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="sec-lbl">Sleep tracker</div><button class="rbtn" onclick="clearSleepHistory()">✕ clear history</button></div>
+    <div class="card" id="sleep-card">
+      <div id="sleep-main"></div>
+    </div>
+  </div>
+
   <div class="sec">
     <div class="sec-hd"><div class="sec-lbl">Quick to-do</div><button class="rbtn" onclick="clearDone()">✕ clear done</button></div>
     <div class="card">
@@ -446,12 +486,171 @@ function addTodo(){
   saveTodos();renderTodos();
 }
 
+// ── commute ──────────────────────────────────────────────────────
+async function loadCommute(){
+  document.getElementById('commute').innerHTML='<div class="ld">Loading drive time...</div>';
+  try{
+    // Use Google Maps Distance Matrix via a free embed approach
+    // Nampa home to BSU - approx 22 miles, use TomTom routing free tier via fetchable URL
+    const origin='43.5771,-116.5388'; // 5408 Lewis Crossing Way Nampa
+    const dest='43.6017,-116.2017';   // BSU campus
+    const url=`https://router.project-osrm.org/route/v1/driving/-116.5388,43.5771;-116.2017,43.6017?overview=false`;
+    const r=await fetch(url);
+    const d=await r.json();
+    if(!d.routes||!d.routes[0])throw new Error('no route');
+    const route=d.routes[0];
+    const baseMins=Math.round(route.duration/60);
+    const miles=Math.round(route.distance*0.000621371*10)/10;
+    // Add realistic traffic estimate based on time of day
+    const h=new Date().getHours();
+    let trafficMult=1, trafficLabel='Light traffic', trafficClass='light';
+    if((h>=7&&h<=9)||(h>=16&&h<=18)){trafficMult=1.4;trafficLabel='Heavy traffic';trafficClass='heavy';}
+    else if((h>=9&&h<=10)||(h>=15&&h<=16)||(h>=18&&h<=19)){trafficMult=1.2;trafficLabel='Moderate traffic';trafficClass='moderate';}
+    const totalMins=Math.round(baseMins*trafficMult);
+    const arrivalDate=new Date(Date.now()+totalMins*60000);
+    const arrival=arrivalDate.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    document.getElementById('commute').innerHTML=`
+      <div class="commute-row">
+        <div>
+          <div class="commute-time">${totalMins} min</div>
+          <div class="commute-sub">Home → Boise State</div>
+          <div class="commute-detail">${miles} miles · arrive ~${arrival}</div>
+          <div class="commute-badge ${trafficClass}">${trafficLabel}</div>
+        </div>
+      </div>`;
+  }catch(e){
+    // Fallback to static estimate with time-based traffic
+    const h=new Date().getHours();
+    let mins=28,label='Light traffic',cls='light';
+    if((h>=7&&h<=9)||(h>=16&&h<=18)){mins=40;label='Heavy traffic';cls='heavy';}
+    else if((h>=9&&h<=10)||(h>=15&&h<=19)){mins=33;label='Moderate traffic';cls='moderate';}
+    const arrival=new Date(Date.now()+mins*60000).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    document.getElementById('commute').innerHTML=`
+      <div class="commute-row">
+        <div>
+          <div class="commute-time">${mins} min</div>
+          <div class="commute-sub">Home → Boise State</div>
+          <div class="commute-detail">~22 miles · arrive ~${arrival}</div>
+          <div class="commute-badge ${cls}">${label}</div>
+        </div>
+      </div>`;
+  }
+}
+
+// ── sleep tracker ─────────────────────────────────────────────────
+let sleepData={bedtime:null,waketime:null,history:[]};
+try{sleepData=JSON.parse(localStorage.getItem('em_sleep')||'{"bedtime":null,"waketime":null,"history":[]}');}catch(e){}
+
+function saveSleep(){localStorage.setItem('em_sleep',JSON.stringify(sleepData));}
+
+function fmtTime(iso){
+  if(!iso)return'';
+  return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+function getDuration(bed,wake){
+  if(!bed||!wake)return null;
+  const diff=(new Date(wake)-new Date(bed))/3600000;
+  return diff>0&&diff<24?diff:null;
+}
+function fmtHours(h){
+  if(h===null)return'—';
+  const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
+  return mins>0?`${hrs}h ${mins}m`:`${hrs}h`;
+}
+
+function renderSleep(){
+  const el=document.getElementById('sleep-main');
+  const dur=getDuration(sleepData.bedtime,sleepData.waketime);
+
+  // Stats
+  const allDurs=sleepData.history.map(n=>n.duration).filter(Boolean);
+  const avg=allDurs.length?allDurs.reduce((a,b)=>a+b,0)/allDurs.length:null;
+  const best=allDurs.length?Math.max(...allDurs):null;
+
+  // Week bars (last 7 days)
+  const days=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const today=new Date().getDay();
+  const weekEntries=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.toLocaleDateString('en-CA');
+    const entry=sleepData.history.find(h=>h.date===key);
+    weekEntries.push({day:days[d.getDay()],dur:entry?entry.duration:null,isToday:i===0});
+  }
+  const maxDur=Math.max(...weekEntries.map(e=>e.dur||0),8);
+
+  el.innerHTML=`
+    <div class="sleep-btns">
+      <button class="sleep-btn ${sleepData.bedtime?'active':''}" onclick="logBedtime()">
+        <div class="sleep-btn-icon">🌙</div>
+        <span class="sleep-btn-label">Bedtime</span>
+        <div class="sleep-btn-time">${sleepData.bedtime?fmtTime(sleepData.bedtime):'Tap to log'}</div>
+      </button>
+      <button class="sleep-btn ${sleepData.waketime?'active':''}" onclick="logWaketime()">
+        <div class="sleep-btn-icon">☀️</div>
+        <span class="sleep-btn-label">Wake up</span>
+        <div class="sleep-btn-time">${sleepData.waketime?fmtTime(sleepData.waketime):'Tap to log'}</div>
+      </button>
+    </div>
+    <div class="sleep-stats">
+      <div class="sleep-stat">
+        <div class="sleep-stat-val">${fmtHours(dur)}</div>
+        <div class="sleep-stat-lbl">Last night</div>
+      </div>
+      <div class="sleep-stat">
+        <div class="sleep-stat-val">${fmtHours(avg)}</div>
+        <div class="sleep-stat-lbl">Avg / night</div>
+      </div>
+      <div class="sleep-stat">
+        <div class="sleep-stat-val">${fmtHours(best)}</div>
+        <div class="sleep-stat-lbl">Best night</div>
+      </div>
+    </div>
+    <div class="sleep-history">
+      <div class="sleep-history-title">This week</div>
+      <div class="sleep-bars">
+        ${weekEntries.map(e=>`
+          <div class="sleep-bar-wrap">
+            <div class="sleep-bar ${e.isToday?'today':''}" style="height:${e.dur?Math.max(8,Math.round((e.dur/maxDur)*100))+'%':'8%'};opacity:${e.dur?1:0.2}"></div>
+            <div class="sleep-bar-day">${e.day}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function logBedtime(){
+  sleepData.bedtime=new Date().toISOString();
+  sleepData.waketime=null;
+  saveSleep();renderSleep();
+}
+
+function logWaketime(){
+  if(!sleepData.bedtime){sleepData.bedtime=new Date(Date.now()-8*3600000).toISOString();}
+  sleepData.waketime=new Date().toISOString();
+  const dur=getDuration(sleepData.bedtime,sleepData.waketime);
+  if(dur){
+    const date=new Date().toLocaleDateString('en-CA');
+    sleepData.history=sleepData.history.filter(h=>h.date!==date);
+    sleepData.history.push({date,duration:dur,bed:sleepData.bedtime,wake:sleepData.waketime});
+    if(sleepData.history.length>30)sleepData.history=sleepData.history.slice(-30);
+  }
+  saveSleep();renderSleep();
+}
+
+function clearSleepHistory(){
+  sleepData={bedtime:null,waketime:null,history:[]};
+  saveSleep();renderSleep();
+}
+
+
 initHeader();tick();setInterval(tick,10000);
-renderTodos();renderVerse();renderChallenge();renderQuote();
+renderTodos();renderVerse();renderChallenge();renderQuote();renderSleep();
 loadWeather();
 loadCalendar();
+loadCommute();
 </script>
 </body>
 </html>
+
 
 
